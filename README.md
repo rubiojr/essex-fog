@@ -30,17 +30,20 @@ Let's get started
       :openstack_username => "admin@myfoobar-stack.net",
       :openstack_auth_url => "http://auth.myfoobar-stack.net:5000/v2.0/tokens"
     })
+
+*openstack_auth_url* is the URL of the Keystone authentication server in this case.
+*openstack_api_key* is the password I use to login to the dashboard (Horizon) and use the API.
+
     
 ## Find the server flavor we want.
+
 m1.tiny has 512 MB of RAM and no additional ephemeral storage
 
-List the flavors available with the command:
-
-    nova flavor-list
+List the flavors available with the command 'nova flavor-list'
 
     flavor = conn.flavors.find { |f| f.name == 'm1.tiny' }
     
-## Find the image we want
+## Find the server image/template we want
 
 List the images available with 'nova image-list' or glance index
 
@@ -48,23 +51,18 @@ List the images available with 'nova image-list' or glance index
     
 ## Create the server
 
-    server = conn.servers.bootstrap :name => "foobar-#{Time.now.strftime '%Y%m%d'}",
-                                    :image_ref => image.id,
-                                    :flavor_ref => flavor.id
-    
-This is equivalent but faster, async server creation since waiting
-for server.ready? is optional
+    server = conn.servers.create :name => "fooserver-#{Time.now.strftime '%Y%m%d'}",
+                                 :image_ref => image.id,
+                                 :flavor_ref => flavor.id,
+                                 :key_name => 'my-foo-keypair' # optional
+
+This will create the server asynchronously, since waiting for server.ready? is optional.
 
 key_name is optional and is used to inject the specified keypair 
 to the instance if cloud-init is present. You can then login via SSH without
 password, among other things (https://help.ubuntu.com/community/CloudInit)
 
 List currently available keypairs with 'nova keypair-list'
-
-    server = conn.servers.create :name => "foobar-#{Time.now.strftime '%Y%m%d'}",
-                                 :image_ref => image.id,
-                                 :flavor_ref => flavor.id,
-                                 :key_name => 'my-foo-keypair' # optional
     
 Wait for the server to be ready (optional, wait for state == 'ACTIVE')
 
