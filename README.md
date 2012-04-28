@@ -18,7 +18,7 @@ You can install them in Ubuntu with the following command:
     sudo apt-get install python-novaclient glance-client python-keystoneclient
 
     
-Let's get started
+Let's get started:
 
     require 'fog'
     
@@ -38,17 +38,16 @@ Let's get started
     
 ## Find the server flavor we want.
 
-m1.tiny has 512 MB of RAM and no additional ephemeral storage
-
-List the flavors available with the command 'nova flavor-list'
-
     flavor = conn.flavors.find { |f| f.name == 'm1.tiny' }
+
+m1.tiny has 512 MB of RAM and no additional ephemeral storage. List the flavors available with the command 'nova flavor-list'.
+
     
 ## Find the server image/template we want
 
-List the images available with 'nova image-list' or glance index
-
     image = conn.images.find { |i| i.name == 'ubuntu-precise-amd64' }
+
+List the images available with 'nova image-list' or glance index.
     
 ## Create the server
 
@@ -58,14 +57,13 @@ List the images available with 'nova image-list' or glance index
                                  :key_name => 'my-foo-keypair' # optional
 
 This will create the server asynchronously, since waiting for server.ready? is optional.
-
 key_name is optional and is used to inject the specified keypair 
 to the instance if cloud-init is present. You can then login via SSH without
 password, among other things (https://help.ubuntu.com/community/CloudInit)
 
 List currently available keypairs with 'nova keypair-list'
     
-Wait for the server to be ready (optional, wait for state == 'ACTIVE')
+Wait for the server to be ready (optional, wait for state == 'ACTIVE'):
 
     server.wait_for { ready? }
     
@@ -78,7 +76,7 @@ You can also check the status of the server with 'nova list':
     | e56b9306-063a-4622-89cb-b5069f805221 | foobar-20120428 | BUILD  | private=1.2.3.4   |
     +--------------------------------------+-----------------+--------+-------------------+
     
-## List the servers running
+## List the servers currently running (active or building)
 
     conn.servers.each do |s|
       puts s.name # server name
@@ -88,20 +86,16 @@ You can also check the status of the server with 'nova list':
     
 ## Associate a public IP to the server
 
-Create if there are no floating ips available
-
-If we find a free ip, not used by any instance, use that.
-
     ip = conn.addresses.find { |ip| ip.instance_id.nil? }
-    
-Otherwise create it
 
+If we find a free IP, not being used by any instance, use that. Otherwise, create it:
+    
     if ip.nil?
       puts 'Creating IP...'
       ip = conn.addresses.create
     end
-    
-Associate the IP address to the server
+
+Associate the IP address to the server:
 
     ip.server = server
     
