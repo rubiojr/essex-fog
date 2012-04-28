@@ -31,8 +31,9 @@ Let's get started
       :openstack_auth_url => "http://auth.myfoobar-stack.net:5000/v2.0/tokens"
     })
 
-*openstack_auth_url* is the URL of the Keystone authentication server in this case.
-*openstack_api_key* is the password I use to login to the dashboard (Horizon) and use the API.
+**openstack_auth_url** is the URL of the Keystone authentication server in this case.
+
+**openstack_api_key** is the password I use to login to the dashboard (Horizon) and use the API.
 
     
 ## Find the server flavor we want.
