@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>Essex-Fog by rubiojr</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Essex-Fog</h1>
+        <h2>Fog OpenStack Tutorial, Essex Edition</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/rubiojr/essex-fog/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/rubiojr/essex-fog/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/rubiojr/essex-fog" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>Getting started with Fog and OpenStack Essex</h1>
+
+<p>Before we start, make sure you have Essex support in Fog.</p>
+
+<p>Essex support has not been merged into Fog upstream so you'll need
+a custom Fog build to work through the tutorial.</p>
+
+<p>Get the custom gem build from <a href="http://rubiojr.frameos.org/fog-1.3.1-essex.gem">http://rubiojr.frameos.org/fog-1.3.1-essex.gem</a> or build fog
+yourself from <a href="https://github.com/MorphGlobal/fog/tree/morph_merge">https://github.com/MorphGlobal/fog/tree/morph_merge</a>.</p>
+
+<p>Follow the merge here if you are interested:</p>
+
+<p><a href="https://github.com/fog/fog/issues/848">https://github.com/fog/fog/issues/848</a></p>
+
+<p>It's a good idea to have OpenStack clients installed to explore other commands.
+You can install them in Ubuntu with the following command:</p>
+
+<pre><code>sudo apt-get install python-novaclient glance-client python-keystoneclient
+</code></pre>
+
+<p>Let's get started:</p>
+
+<pre><code>require 'fog'
+</code></pre>
+
+<h2>Connect and authenticate</h2>
+
+<pre><code>conn = Fog::Compute.new({
+  :provider =&gt; 'OpenStack',
+  :openstack_api_key =&gt; "changeme",
+  :openstack_username =&gt; "admin@myfoobar-stack.net",
+  :openstack_auth_url =&gt; "http://auth.myfoobar-stack.net:5000/v2.0/tokens"
+})
+</code></pre>
+
+<p><strong>openstack_auth_url</strong> is the URL of the Keystone authentication server in this case.</p>
+
+<p><strong>openstack_api_key</strong> is the password I use to login to the dashboard (Horizon) and use the API.</p>
+
+<h2>Find the server flavor we want.</h2>
+
+<pre><code>flavor = conn.flavors.find { |f| f.name == 'm1.tiny' }
+</code></pre>
+
+<p>m1.tiny has 512 MB of RAM and no additional ephemeral storage. List the flavors available with the command 'nova flavor-list'.</p>
+
+<h2>Find the server image/template we want</h2>
+
+<pre><code>image = conn.images.find { |i| i.name == 'ubuntu-precise-amd64' }
+</code></pre>
+
+<p>List the images available with 'nova image-list' or glance index.</p>
+
+<h2>Create the server</h2>
+
+<pre><code>server = conn.servers.create :name =&gt; "fooserver-#{Time.now.strftime '%Y%m%d'}",
+                             :image_ref =&gt; image.id,
+                             :flavor_ref =&gt; flavor.id,
+                             :key_name =&gt; 'my-foo-keypair' # optional
+</code></pre>
+
+<p>This will create the server asynchronously, since waiting for server.ready? is optional.
+key_name is optional and is used to inject the specified keypair 
+to the instance if cloud-init is present. You can then login via SSH without
+password, among other things (<a href="https://help.ubuntu.com/community/CloudInit">https://help.ubuntu.com/community/CloudInit</a>)</p>
+
+<p>List currently available keypairs with 'nova keypair-list'</p>
+
+<p>Wait for the server to be ready (optional, wait for state == 'ACTIVE'):</p>
+
+<pre><code>server.wait_for { ready? }
+</code></pre>
+
+<p>You can also check the status of the server with 'nova list':</p>
+
+<pre><code>+--------------------------------------+-----------------+--------+-------------------+
+|                  ID                  |       Name      | Status |      Networks     |
++--------------------------------------+-----------------+--------+-------------------+
+| e56b9306-063a-4622-89cb-b5069f805221 | foobar-20120428 | BUILD  | private=1.2.3.4   |
++--------------------------------------+-----------------+--------+-------------------+
+</code></pre>
+
+<h2>List the servers currently running (active or building)</h2>
+
+<pre><code>conn.servers.each do |s|
+  puts s.name # server name
+  puts s.state
+  puts s.id
+end
+</code></pre>
+
+<h2>Associate a public IP to the server</h2>
+
+<pre><code>ip = conn.addresses.find { |ip| ip.instance_id.nil? }
+</code></pre>
+
+<p>If we find a free IP, not being used by any instance, use that. Otherwise, create it:</p>
+
+<pre><code>if ip.nil?
+  puts 'Creating IP...'
+  ip = conn.addresses.create
+end
+</code></pre>
+
+<p>Associate the IP address to the server:</p>
+
+<pre><code>ip.server = server
+</code></pre>
+
+<h2>Cleanup or regret it, <a href="https://github.com/geemus" class="user-mention">@geemus</a> dixit</h2>
+
+<pre><code>ip.destroy
+server.destroy
+</code></pre>
+      </section>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-3296835-17");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
